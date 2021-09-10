@@ -104,6 +104,17 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
         + xml + "  </characteristic>\n" + "</wap-provisioningdoc>";
   }
 
+  public void release() {
+    if (mEmdkManager != null) {
+      mEmdkManager.release();
+      mEmdkManager = null;
+    }
+
+    if (mProfileManager != null) {
+      mProfileManager = null;
+    }
+  }
+
   /******************
    * EMDK Callbacks *
    ******************/
