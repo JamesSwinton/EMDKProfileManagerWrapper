@@ -164,4 +164,11 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
     void onXmlError(String... errors);
   }
 
+  public interface ProfileManagerWrapperCallback {
+    void onReady();
+    void onError(String error);
+    void onXmlProcessed();
+    void onXmlError(String... errors);
+  }
+
 }
