@@ -1,7 +1,9 @@
 package com.zebra.jamesswinton.profilemanagerwrapper;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.AsyncTask;
+import androidx.appcompat.app.AlertDialog;
 import com.symbol.emdk.EMDKManager;
 import com.symbol.emdk.EMDKResults;
 import com.symbol.emdk.ProfileManager;
@@ -22,6 +24,9 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
   // Callback & Context
   private Activity mActivity;
   private ProfileManagerWrapperCallback mCallback;
+
+  // Dialog
+  private AlertDialog mProgressDialog = null;
 
   public EMDKProfileManagerWrapper(Activity activity, ProfileManagerWrapperCallback callback) {
     // Set Callback
@@ -54,12 +59,19 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
     return true;
   }
 
-  public void applyXml(String xml) {
+  public void applyXml(Context cx, String xml, boolean showProgressDialog) {
+    if (showProgressDialog) {
+      mProgressDialog = CustomDialog.buildLoadingDialog(cx, "Processing XML",
+          false);
+      mProgressDialog.show();
+    }
+
     // Append Profile Name to Xml
     xml = wrapXmlInProfile(xml);
 
     // Validate EMDK
     if (mEmdkManager == null && !mObtainingEmdkManager) {
+      dismissDialog();
       mCallback.onError("Could not obtain EMDKManager, "
           + "please re-instantiate this class & try again. This error is usually caused by "
           + "another application holding onto the EMDKManager");
@@ -68,6 +80,7 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
 
     // Validate ProfileManager
     if (mProfileManager == null && !mObtainingEmdkManager) {
+      dismissDialog();
       mCallback.onError("Could not obtain ProfileManager, "
           + "please re-instantiate this class & try again.");
       return;
@@ -75,6 +88,7 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
 
     // Queue request if EMDK not ready
     if ((mEmdkManager == null || mProfileManager == null) && mObtainingEmdkManager) {
+      dismissDialog();
       mCallback.onError("EMDK Not ready - please move your code to the onReady() callback");
       return;
     }
@@ -93,6 +107,8 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
   }
 
   public void release() {
+    dismissDialog();
+
     if (mEmdkManager != null) {
       mEmdkManager.release();
       mEmdkManager = null;
@@ -100,6 +116,13 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
 
     if (mProfileManager != null) {
       mProfileManager = null;
+    }
+  }
+
+  public void dismissDialog() {
+    if (mProgressDialog != null) {
+      mProgressDialog.dismiss();
+      mProgressDialog = null;
     }
   }
 
@@ -145,11 +168,13 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
 
   @Override
   public void profileApplied() {
+    dismissDialog();
     mCallback.onXmlProcessed();
   }
 
   @Override
   public void profileError(XmlParsingError... parsingErrors) {
+    dismissDialog();
     mCallback.onXmlError(parsingErrors);
   }
 

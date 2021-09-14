@@ -3,8 +3,6 @@ package com.zebra.jamesswinton.testwrapperapp;
 import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import com.zebra.jamesswinton.profilemanagerwrapper.EMDKProfileManagerWrapper;
-import com.zebra.jamesswinton.profilemanagerwrapper.EMDKProfileManagerWrapper.OnXmlProcessedListener;
 
 public class MainActivity extends AppCompatActivity implements OnXmlProcessedListener {
 
