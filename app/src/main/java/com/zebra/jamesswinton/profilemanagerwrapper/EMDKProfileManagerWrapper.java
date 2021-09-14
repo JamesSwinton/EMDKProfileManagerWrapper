@@ -13,8 +13,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnProfileApplied {
-  // Xml
-  private List<String> mProfiles = new ArrayList<>();
 
   // EMDK EMDKManager
   private EMDKManager mEmdkManager;
@@ -23,15 +21,12 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
 
   // Callback & Context
   private Activity mActivity;
-  private OnXmlProcessedListener mOnXmlProcessedListener;
+  private ProfileManagerWrapperCallback mCallback;
 
-  // Main Thread Handler
-  private final ScheduledExecutorService mScheduledWorker = Executors.newSingleThreadScheduledExecutor();
-
-  public EMDKProfileManagerWrapper(Activity activity, OnXmlProcessedListener onXmlProcessedListener) {
+  public EMDKProfileManagerWrapper(Activity activity, ProfileManagerWrapperCallback callback) {
     // Set Callback
     this.mActivity = activity;
-    this.mOnXmlProcessedListener = onXmlProcessedListener;
+    this.mCallback = callback;
 
     // Grab EMDK
     if (mEmdkManager == null) {
@@ -51,7 +46,7 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
 
     // Verify EMDK Manager
     if (emdkManagerResults == null || emdkManagerResults.statusCode != EMDKResults.STATUS_CODE.SUCCESS) {
-      mOnXmlProcessedListener.onError("Could not obtain EMDKManager");
+      mCallback.onError("Could not obtain EMDKManager");
       return false;
     }
 
@@ -59,41 +54,32 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
     return true;
   }
 
-  public String mXml = "";
   public void applyXml(String xml) {
     // Append Profile Name to Xml
-    mXml = wrapXmlInProfile(xml);
-
-    // Add Xml To List
-    mProfiles.add(mXml);
+    xml = wrapXmlInProfile(xml);
 
     // Validate EMDK
     if (mEmdkManager == null && !mObtainingEmdkManager) {
-      mOnXmlProcessedListener.onError("Could not obtain EMDKManager, "
+      mCallback.onError("Could not obtain EMDKManager, "
           + "please re-instantiate this class & try again. This error is usually caused by "
           + "another application holding onto the EMDKManager");
     }
 
     // Validate ProfileManager
     if (mProfileManager == null && !mObtainingEmdkManager) {
-      mOnXmlProcessedListener.onError("Could not obtain ProfileManager, "
+      mCallback.onError("Could not obtain ProfileManager, "
           + "please re-instantiate this class & try again.");
     }
 
     // Queue request if EMDK not ready
     if ((mEmdkManager == null || mProfileManager == null) && mObtainingEmdkManager) {
-      mScheduledWorker.schedule(() -> applyXml(mXml), 500, TimeUnit.MILLISECONDS);
+      mCallback.onError("EMDK Not ready - please move your code to the onReady() callback");
       return;
     }
 
     // Process Profile
-    for (String profile : mProfiles) {
-      new ProcessProfileAsync("WrapperLibProfile", mProfileManager, this)
-          .executeOnExecutor(AsyncTask.SERIAL_EXECUTOR, profile);
-    }
-
-    // Clear Queue
-    mProfiles.clear();
+    new ProcessProfileAsync("WrapperLibProfile", mProfileManager, this)
+        .executeOnExecutor(AsyncTask.SERIAL_EXECUTOR, xml);
   }
 
   private String wrapXmlInProfile(String xml) {
@@ -132,7 +118,7 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
 
     // Check ProfileManager
     if (mProfileManager == null) {
-      mOnXmlProcessedListener.onError("Could not obtain Profile Manager");
+      mCallback.onError("Could not obtain Profile Manager");
     }
   }
 
@@ -154,12 +140,12 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
 
   @Override
   public void profileApplied() {
-    mOnXmlProcessedListener.onComplete();
+    mCallback.onXmlProcessed();
   }
 
   @Override
   public void profileError(String... errors) {
-    mOnXmlProcessedListener.onError(errors);
+    mCallback.onXmlError(errors);
   }
 
   /************
@@ -169,6 +155,13 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
   public interface OnXmlProcessedListener {
     void onComplete();
     void onError(String... errors);
+  }
+
+  public interface ProfileManagerWrapperCallback {
+    void onReady();
+    void onError(String error);
+    void onXmlProcessed();
+    void onXmlError(String... errors);
   }
 
 }
