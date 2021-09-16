@@ -49,14 +49,14 @@ public class ProcessProfileAsync extends AsyncTask<String, Void, EMDKResults> {
 
     // Notify Result
     if (errors.isEmpty()) {
-      mOnProfileApplied.profileApplied();
+      mOnProfileApplied.profileApplied(results);
     } else {
       mOnProfileApplied.profileError(errors.toArray(new XmlParsingError[0]));
     }
   }
 
   public interface OnProfileApplied {
-    void profileApplied();
+    void profileApplied(EMDKResults emdkResults);
     void profileError(XmlParsingError... parsingErrors);
   }
 

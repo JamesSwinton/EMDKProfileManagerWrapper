@@ -167,9 +167,9 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
    ***************************/
 
   @Override
-  public void profileApplied() {
+  public void profileApplied(EMDKResults emdkResults) {
     dismissDialog();
-    mCallback.onXmlProcessed();
+    mCallback.onXmlProcessed(emdkResults);
   }
 
   @Override
@@ -185,7 +185,7 @@ public class EMDKProfileManagerWrapper implements EMDKManager.EMDKListener, OnPr
   public interface ProfileManagerWrapperCallback {
     void onReady();
     void onError(String error);
-    void onXmlProcessed();
+    void onXmlProcessed(EMDKResults results);
     void onXmlError(XmlParsingError... parsingErrors);
   }
 
