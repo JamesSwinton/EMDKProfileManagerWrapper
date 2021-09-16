@@ -2,6 +2,7 @@ package com.zebra.jamesswinton.profilemanagerwrapper;
 
 import android.os.AsyncTask;
 import android.util.Xml;
+import androidx.core.util.Pair;
 import com.symbol.emdk.EMDKResults;
 import com.symbol.emdk.ProfileManager;
 import com.symbol.emdk.ProfileManager.PROFILE_FLAG;
@@ -12,7 +13,7 @@ import java.util.List;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
-public class ProcessProfileAsync extends AsyncTask<String, Void, EMDKResults> {
+public class ProcessProfileAsync extends AsyncTask<String, Void, Pair<String, EMDKResults>> {
 
   // Non-Static Variables
   private String mProfileName;
@@ -27,19 +28,20 @@ public class ProcessProfileAsync extends AsyncTask<String, Void, EMDKResults> {
   }
 
   @Override
-  protected EMDKResults doInBackground(String... params) {
+  protected Pair<String, EMDKResults> doInBackground(String... params) {
     // Execute Profile
-    return mProfileManager.processProfile(mProfileName, PROFILE_FLAG.SET, params);
+    EMDKResults emdkResults =  mProfileManager.processProfile(mProfileName, PROFILE_FLAG.SET, params);
+    return new Pair<String, EMDKResults>(params[0], emdkResults);
   }
 
   @Override
-  protected void onPostExecute(EMDKResults results) {
+  protected void onPostExecute(Pair<String, EMDKResults> results) {
     super.onPostExecute(results);
     // Parse Results
     List<XmlParsingError> errors = new ArrayList<>();
     try {
       XmlPullParser xmlPullParser = Xml.newPullParser();
-      xmlPullParser.setInput(new StringReader(results.getStatusString()));
+      xmlPullParser.setInput(new StringReader(results.second.getStatusString()));
       errors = parseXML(xmlPullParser);
     } catch (XmlPullParserException | IOException e) {
       e.printStackTrace();
@@ -49,14 +51,14 @@ public class ProcessProfileAsync extends AsyncTask<String, Void, EMDKResults> {
 
     // Notify Result
     if (errors.isEmpty()) {
-      mOnProfileApplied.profileApplied(results);
+      mOnProfileApplied.profileApplied(results.first, results.second);
     } else {
       mOnProfileApplied.profileError(errors.toArray(new XmlParsingError[0]));
     }
   }
 
   public interface OnProfileApplied {
-    void profileApplied(EMDKResults emdkResults);
+    void profileApplied(String xml, EMDKResults emdkResults);
     void profileError(XmlParsingError... parsingErrors);
   }
 
